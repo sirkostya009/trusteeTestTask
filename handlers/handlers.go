@@ -93,7 +93,7 @@ func (h *Handlers) Showtime(c echo.Context) error {
 }
 
 func (h *Handlers) BookShowtime(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 32)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(400, err)
 	}
@@ -131,7 +131,7 @@ func (h *Handlers) BookShowtime(c echo.Context) error {
 			TimeZone: "Europe/Kiev",
 		},
 		End: &calendar.EventDateTime{
-			DateTime: showtime.BeginTime.Add(showtime.Duration).Format(time.RFC3339),
+			DateTime: showtime.EndTime.Format(time.RFC3339),
 			TimeZone: "Europe/Kiev",
 		},
 		Locked: true,
@@ -146,7 +146,7 @@ func (h *Handlers) BookShowtime(c echo.Context) error {
 }
 
 func (h *Handlers) CancelBooking(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 32)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(500, err)
 	}

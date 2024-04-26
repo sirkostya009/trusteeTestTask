@@ -29,25 +29,31 @@ func NewCinemaService() *CinemaService {
 		"Dune",
 	}
 
+	now := time.Now().Truncate(time.Second)
+
 	s := make([]*Showtime, 10)
 	for i := range s {
 		hour := time.Duration(rand.Int64N(14) + 8)
 		day := time.Duration(rand.Int64N(3))
-		hours := time.Duration(rand.Int64N(3) + 1)
+		hours := rand.IntN(3) + 1
 		titleI := rand.IntN(len(movieTitles))
 		s[i] = &Showtime{
-			Id:        int64(i + 1),
-			BeginTime: time.Now().Add(time.Hour * hour * day),
-			Duration:  time.Hour * hours,
+			Id:        i + 1,
+			BeginTime: now.Add(time.Hour * hour * day),
+			EndTime:   now.Add(time.Hour * hour * day).Add(time.Hour * time.Duration(hours)),
+			Duration:  hours * 60,
 			Title:     movieTitles[titleI],
 			Seats:     rand.IntN(100) + 1,
 			bookers:   map[string]string{},
 		}
 	}
 	slices.SortFunc(s, func(a, b *Showtime) int {
-		return a.BeginTime.Compare(b.BeginTime)
+		if cmp := a.BeginTime.Compare(b.BeginTime); cmp != 0 {
+			return cmp
+		}
+		return a.EndTime.Compare(b.EndTime)
 	})
-	last := s[len(s)-1].BeginTime.Add(s[len(s)-1].Duration)
+	last := s[len(s)-1].EndTime
 	return &CinemaService{showtime: s, maxShowtimeEndTime: last}
 }
 
@@ -75,26 +81,38 @@ func (s *CinemaService) FilterShowtime(events []*calendar.Event) []*Showtime {
 	return filtered
 }
 
-func (s *CinemaService) IsShowtimeOverlapping(events []*calendar.Event, showtime *Showtime) bool {
+func (s *CinemaService) IsShowtimeOverlapping(events []*calendar.Event, st *Showtime) bool {
 	for _, e := range events {
-		startTime, err := time.Parse(time.RFC3339, e.Start.DateTime)
+		evStartTime, err := time.Parse(time.RFC3339, e.Start.DateTime)
 		if err != nil {
 			continue
 		}
-		endTime, err := time.Parse(time.RFC3339, e.End.DateTime)
+		evEndTime, err := time.Parse(time.RFC3339, e.End.DateTime)
 		if err != nil {
 			continue
 		}
 
-		if (showtime.BeginTime.After(startTime) && showtime.BeginTime.Before(endTime)) ||
-			(showtime.BeginTime.Before(startTime) && showtime.BeginTime.Add(showtime.Duration).After(startTime)) {
+		// uncomment for debugging purposes
+		//fmt.Printf("%v | %v | %v | %v\n%v | %v | %v\n",
+		//	st.BeginTime.Format(time.TimeOnly),
+		//	st.EndTime.Format(time.TimeOnly),
+		//	evStartTime.Format(time.TimeOnly),
+		//	evEndTime.Format(time.TimeOnly),
+		//	st.BeginTime.Compare(evStartTime) >= 0 && st.BeginTime.Before(evEndTime),
+		//	st.EndTime.After(evStartTime) && st.EndTime.Before(evEndTime),
+		//	st.BeginTime.Compare(evStartTime) <= 0 && st.EndTime.Compare(evEndTime) >= 0,
+		//)
+
+		if st.BeginTime.Compare(evStartTime) >= 0 && st.BeginTime.Before(evEndTime) || // starts during
+			st.EndTime.After(evStartTime) && st.EndTime.Before(evEndTime) || // ends during
+			st.BeginTime.Compare(evStartTime) <= 0 && st.EndTime.Compare(evEndTime) >= 0 /*starts before and ends after*/ {
 			return true
 		}
 	}
 	return false
 }
 
-func (s *CinemaService) GetShowtime(id int64) (*Showtime, error) {
+func (s *CinemaService) GetShowtime(id int) (*Showtime, error) {
 	for _, st := range s.showtime {
 		if st.Id == id {
 			return st, nil
@@ -103,7 +121,7 @@ func (s *CinemaService) GetShowtime(id int64) (*Showtime, error) {
 	return nil, errors.New("showtime not found")
 }
 
-func (s *CinemaService) BookShowtime(id int64, ip, eventId string) error {
+func (s *CinemaService) BookShowtime(id int, ip, eventId string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	for _, st := range s.showtime {
@@ -116,7 +134,7 @@ func (s *CinemaService) BookShowtime(id int64, ip, eventId string) error {
 	return errors.New("showtime not found")
 }
 
-func (s *CinemaService) CancelBooking(id int64, ip string) string {
+func (s *CinemaService) CancelBooking(id int, ip string) string {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	for _, st := range s.showtime {
@@ -130,7 +148,7 @@ func (s *CinemaService) CancelBooking(id int64, ip string) string {
 	return ""
 }
 
-func (s *CinemaService) IsBooked(id int64, ip string) bool {
+func (s *CinemaService) IsBooked(id int, ip string) bool {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	for _, st := range s.showtime {
