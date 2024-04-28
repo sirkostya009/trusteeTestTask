@@ -81,7 +81,7 @@ func (h *Handlers) getEvents(srvc *calendar.Service) (*calendar.Events, error) {
 		Do()
 }
 
-func (h *Handlers) Showtime(c echo.Context) error {
+func (h *Handlers) Showtimes(c echo.Context) error {
 	events, err := h.getEvents(c.Get("service").(*calendar.Service))
 	if err != nil {
 		return echo.NewHTTPError(500, err)
@@ -90,6 +90,20 @@ func (h *Handlers) Showtime(c echo.Context) error {
 	showtimeList := h.service.FilterShowtime(events.Items)
 
 	return c.JSON(200, showtimeList)
+}
+
+func (h *Handlers) Showtime(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(400, err)
+	}
+
+	showtime, err := h.service.GetShowtime(id)
+	if err != nil {
+		return echo.NewHTTPError(404, "showtime not found")
+	}
+
+	return c.JSON(200, showtime.ToDto(c.RealIP()))
 }
 
 func (h *Handlers) BookShowtime(c echo.Context) error {

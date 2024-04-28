@@ -1,26 +1,31 @@
 package main
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"trusteeTestTask/handlers"
 )
 
 func globalErrHandler(err error, ctx echo.Context) {
-	httpErr := err.(*echo.HTTPError)
+	code := 500
 	var str string
-	if e, ok := httpErr.Message.(error); ok {
-		str = e.Error()
-	} else {
-		str = httpErr.Message.(string)
+	if e := new(echo.HTTPError); errors.As(err, &e) {
+		switch e.Message.(type) {
+		case error:
+			str = e.Message.(error).Error()
+		case string:
+			str = e.Message.(string)
+		}
+		code = e.Code
 	}
 	ctx.Logger().Errorj(log.JSON{
 		"error": str,
 		"ip":    ctx.RealIP(),
-		"code":  httpErr.Code,
-		"path":  ctx.Path(),
+		"code":  code,
+		"path":  ctx.Request().RequestURI,
 	})
-	_ = ctx.JSON(httpErr.Code, echo.Map{
+	_ = ctx.JSON(code, echo.Map{
 		"error": str,
 	})
 }
@@ -35,7 +40,8 @@ func main() {
 
 	api := e.Group("/api")
 	api.Use(h.TokenMiddleware)
-	api.GET("/showtime", h.Showtime)
+	api.GET("/showtime", h.Showtimes)
+	api.GET("/showtime/:id", h.Showtime)
 	api.PATCH("/showtime/:id", h.BookShowtime)
 	api.DELETE("/showtime/:id", h.CancelBooking)
 

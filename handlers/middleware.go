@@ -11,11 +11,11 @@ import (
 
 func (h *Handlers) TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		auth, err := c.Cookie("google-session")
-		if err != nil {
+		auth := c.Request().Header.Get("Authorization")
+		if len(auth) < 7 {
 			return echo.NewHTTPError(401, "no auth")
 		}
-		token, err := jwt.Parse(auth.Value, func(t *jwt.Token) (any, error) {
+		token, err := jwt.Parse(auth[7:], func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
