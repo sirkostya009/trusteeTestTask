@@ -9,24 +9,24 @@ import (
 
 func globalErrHandler(err error, ctx echo.Context) {
 	code := 500
-	var str string
+	msg := err.Error()
 	if e := new(echo.HTTPError); errors.As(err, &e) {
 		switch e.Message.(type) {
 		case error:
-			str = e.Message.(error).Error()
+			msg = e.Message.(error).Error()
 		case string:
-			str = e.Message.(string)
+			msg = e.Message.(string)
 		}
 		code = e.Code
 	}
 	ctx.Logger().Errorj(log.JSON{
-		"error": str,
+		"error": msg,
 		"ip":    ctx.RealIP(),
 		"code":  code,
 		"path":  ctx.Request().RequestURI,
 	})
 	_ = ctx.JSON(code, echo.Map{
-		"error": str,
+		"error": msg,
 	})
 }
 
