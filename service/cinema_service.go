@@ -5,6 +5,7 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"math/rand/v2"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -44,6 +45,7 @@ func NewCinemaService() *CinemaService {
 			Duration:  hours * 60,
 			Title:     movieTitles[titleI],
 			Seats:     rand.IntN(100) + 1,
+			ImgSrc:    "image" + strconv.Itoa(i) + ".jpg",
 			bookers:   map[string]string{},
 		}
 	}

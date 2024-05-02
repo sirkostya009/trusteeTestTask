@@ -59,7 +59,7 @@ func (h *Handlers) Authenticate(c echo.Context) error {
 		"type": tok.TokenType,
 	}).SignedString(h.secret)
 	if err != nil {
-		return echo.NewHTTPError(500, err)
+		return err
 	}
 
 	c.SetCookie(&http.Cookie{
@@ -84,7 +84,7 @@ func (h *Handlers) getEvents(srvc *calendar.Service) (*calendar.Events, error) {
 func (h *Handlers) Showtimes(c echo.Context) error {
 	events, err := h.getEvents(c.Get("service").(*calendar.Service))
 	if err != nil {
-		return echo.NewHTTPError(500, err)
+		return err
 	}
 
 	showtimeList := h.service.FilterShowtime(events.Items)
@@ -123,7 +123,7 @@ func (h *Handlers) BookShowtime(c echo.Context) error {
 
 	events, err := h.getEvents(c.Get("service").(*calendar.Service))
 	if err != nil {
-		return echo.NewHTTPError(500, err)
+		return err
 	}
 
 	if h.service.IsShowtimeOverlapping(events.Items, showtime) {
@@ -151,7 +151,7 @@ func (h *Handlers) BookShowtime(c echo.Context) error {
 		Locked: true,
 	}).Do()
 	if err != nil {
-		return echo.NewHTTPError(500, err)
+		return err
 	}
 
 	_ = h.service.BookShowtime(id, c.RealIP(), event.Id)
@@ -162,7 +162,7 @@ func (h *Handlers) BookShowtime(c echo.Context) error {
 func (h *Handlers) CancelBooking(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(500, err)
+		return err
 	}
 
 	if !h.service.IsBooked(id, c.RealIP()) {

@@ -45,6 +45,10 @@ func main() {
 	api.PATCH("/showtime/:id", h.BookShowtime)
 	api.DELETE("/showtime/:id", h.CancelBooking)
 
+	// we can also do go:embed if our src folder is not a blob storage volume
+	//e.Static("/src/", os.Getenv("IMAGE_VOLUME_PATH"))
+	e.Static("/src/", "D:/Pics")
+
 	//log.Fatal(e.Start(":" + os.Getenv("PORT")))
 	log.Fatal(e.Start(":3000"))
 }

@@ -9,6 +9,7 @@ type Showtime struct {
 	Duration  int               `json:"duration"` // in minutes
 	Title     string            `json:"title"`
 	Seats     int               `json:"seats"`
+	ImgSrc    string            `json:"image"`
 	bookers   map[string]string // ip -> eventId
 }
 
